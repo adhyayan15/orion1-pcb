@@ -1,130 +1,60 @@
-# Orion-1 | STM32F407 Robotics Controller PCB
+# Orion-1
 
-**A custom, two-layer robotics controller designed from schematic to PCB layout in KiCad.**
+### My first attempt at designing a robotics controller from scratch
 
-Orion-1 is my first revision of a general-purpose embedded robotics control board. I designed it to bring the core building blocks of a small robot onto one PCB: an STM32 microcontroller, regulated logic power, a dual DC-motor driver, servo connections, debug access, and interfaces for sensors and peripherals.
+![Orion-1 board render](Images/PCB_3D_Front.png)
 
-> **Status — design-stage prototype (Rev 1).** KiCad design files and Gerber layers are included. The previous project notes report unresolved functional issues; I have **not** documented a successful powered-board bring-up or verified robot operation. The board should be reviewed and tested before relying on it in hardware.
+I wanted a controller I could eventually use in my own robots instead of building every project around a development board and a mess of jumper wires. That's where Orion-1 started.
 
-![Orion-1 PCB 3D rendering](Images/PCB_3D_Front.png)
+The plan was to put the essentials on one PCB: an STM32, motor control, servo connections, power regulation, and enough headers to plug in sensors later. I built the schematic and laid out the board in KiCad. It's a 4 × 4-inch, two-layer design based around the **STM32F407VGTx**.
 
-<p align="center"><em>Orion-1: KiCad 3D board view</em></p>
+This is **revision one**, not a finished commercial controller. Some functional issues are still unresolved, and I haven't documented a successful full hardware bring-up. I'm keeping it here because the design process itself taught me a lot.
 
-## Project at a glance
+## What's on the board?
 
-| | |
+| Part | Why it's there |
 | --- | --- |
-| **MCU** | STM32F407VGTx (Arm Cortex-M4 family, LQFP-100) |
-| **Motor driver** | TB6612FNG dual H-bridge |
-| **Logic regulation** | AP2112K-3.3, 3.3 V LDO |
-| **Power input/interface** | USB-C receptacle, polyfuse, separate motor-power net |
-| **Expansion** | Four servo connectors, sensor headers, UART, I²C, SPI, wireless/auxiliary header |
-| **Debug & controls** | SWD signals, reset circuit, oscillator footprint, user/power LEDs |
-| **PCB** | 101.6 × 101.6 mm (4 × 4 in), two copper layers, 1.6 mm nominal thickness in the KiCad project |
-| **EDA tools** | KiCad 10.0 (schematic, layout, 3D viewer and Gerbers) |
+| STM32F407VGTx | Main microcontroller; an Arm Cortex-M4 |
+| TB6612FNG | Dual DC-motor driver |
+| AP2112K-3.3 | 3.3 V regulation for the logic side |
+| USB-C connector + polyfuse | Part of the input/power interface |
+| Four servo headers | Connections for future actuators |
+| UART, I²C, SPI and sensor headers | Room to add peripherals |
+| SWD signals, reset, oscillator, LEDs | Bring-up, debugging and basic feedback |
 
-*The table describes elements found in the design files; it is not a claim that every interface has passed electrical or firmware testing.*
+The KiCad project uses a **101.6 × 101.6 mm**, two-copper-layer board outline, with 1.6 mm nominal thickness.
 
-## Design views
+## A closer look
 
-| PCB routing / top view | Circuit schematic |
-|:--:|:--:|
-| ![PCB top view](Images/PCB_Top.png) | ![KiCad schematic](Images/Schematic.png) |
+| PCB layout | Schematic |
+| :---: | :---: |
+| ![PCB top view](Images/PCB_Top.png) | ![Circuit schematic](Images/Schematic.png) |
 
-## Why I built it
+## What I learned building it
 
-I wanted to understand embedded hardware **beyond wiring modules together on a breadboard**. A robotics controller is a useful learning challenge because electrical decisions affect everything downstream: power distribution, motor noise, microcontroller stability, connector accessibility, and whether the finished board can actually be assembled and debugged.
+The parts list was the easy part. Getting all those parts to make sense together was harder.
 
-Orion-1 took me through component selection, datasheet research, schematic capture, footprint assignment, placement, routing, copper layers, and fabrication-file export. I also had to work through issues involving KiCad electrical-rule checks, power-flag conventions, USB power connections, grounding, and crystal circuitry.
+I spent time sorting out KiCad's power flags and ERC messages, thinking through the USB supply path, checking crystal connections, and fixing grounding and routing issues. A robotics board also forces you to think about things you can mostly ignore on a breadboard: motor current, where the return paths go, and whether your connectors will actually be usable after assembly.
 
-## System architecture
+One thing I would do differently is plan the bring-up process earlier, before worrying so much about making the layout look finished. A routed board isn't the same thing as a tested board.
 
-```mermaid
-flowchart TB
-    USB["USB-C input / connector"] --> PROT["Input protection & distribution"]
-    PROT --> LDO["AP2112K-3.3 regulator"]
-    LDO --> MCU["STM32F407VGTx MCU"]
-    MOTOR["Motor-power connection"] --> DRIVER["TB6612FNG motor driver"]
-    MCU -->|GPIO / PWM control| DRIVER
-    DRIVER --> OUT["Two DC-motor channels"]
-    MCU --> SERVOS["4 servo headers"]
-    MCU --> SENSORS["Sensor + UART / I²C / SPI headers"]
-    MCU --> DEBUG["SWD / reset / user LED"]
-```
+## Current state
 
-This diagram is a **functional overview**; consult the actual schematic for electrical connectivity and pin assignments. In particular, **USB-C presence does not establish that firmware flashing over USB works**—the SWD programming path and USB configuration need separate verification. Servo power and motor-power requirements must also be reviewed before powering loads.
+The repository includes the [editable KiCad project](KiCad/), exported Gerber layers, and the images above. **It's still a design-stage prototype.** I haven't included firmware, measured rail voltages, or a verified motor/servo demo. The current repository also doesn't have NC drill output, so the manufacturing package needs to be regenerated before ordering.
 
-## Engineering scope
+If you're looking through the design, the most useful files are:
 
-**Power:** USB-related 5 V and regulated 3.3 V logic are represented in the design. The motor driver also has a separately labeled motor-supply net. Power-source selection, regulator heating, protection behavior, and load limits still require bench validation.
+- [Schematic](KiCad/orion-1.kicad_sch) and [PCB layout](KiCad/orion-1.kicad_pcb)
+- [Hardware notes](docs/HARDWARE_ARCHITECTURE.md)
+- [Bring-up checklist](docs/BRING_UP_AND_VALIDATION.md)
+- [Fabrication notes](docs/FABRICATION_NOTES.md)
 
-**Control:** The STM32F407VGTx is intended as the embedded control core. SWD signals, reset and clock circuitry, and user-visible indicators support development and troubleshooting.
+Open `KiCad/orion-1.kicad_pro` in **KiCad 10.0**. Re-run ERC and DRC and check footprints and power nets before treating this revision as fabrication-ready.
 
-**Actuation:** The TB6612FNG connects the controller to two DC-motor channels. Four servo connectors are represented in the schematic.
+## What's next
 
-**Expansion:** Sensor connectors and UART/I²C/SPI interfaces make the PCB useful as a foundation for different robot configurations.
-
-Read [Hardware architecture](docs/HARDWARE_ARCHITECTURE.md) for a more technical breakdown.
-
-## Repository contents
-
-```text
-Orion-1/
-├── Images/
-│   ├── PCB_3D_Front.png          # 3D render
-│   ├── PCB_Top.png               # Layout view
-│   └── Schematic.png             # Schematic overview
-├── KiCad/
-│   ├── orion-1.kicad_pro         # Project configuration
-│   ├── orion-1.kicad_sch         # Editable schematic
-│   ├── orion-1.kicad_pcb         # Editable PCB layout
-│   └── *.gbr / *.gbrjob         # Exported Gerber layers and job file
-├── docs/
-│   ├── HARDWARE_ARCHITECTURE.md
-│   ├── BRING_UP_AND_VALIDATION.md
-│   └── FABRICATION_NOTES.md
-├── .gitignore
-├── LICENSE
-└── README.md
-```
-
-## Open and inspect the design
-
-1. Install **KiCad 10.0** (the project was saved with KiCad 10).
-2. Clone or download this repository.
-3. Open `KiCad/orion-1.kicad_pro` in KiCad.
-4. Open the schematic and PCB editor to inspect nets, footprints, routing, zones, and design-rule settings.
-5. Re-run **Electrical Rules Checker (ERC)** and **Design Rules Checker (DRC)** in your own environment; no current passing validation report is supplied in this repository.
-
-```bash
-git clone https://github.com/adhyayan15/orion1-pcb.git
-```
-
-**Before ordering boards:** review [Fabrication notes](docs/FABRICATION_NOTES.md). Gerber layers are present, but **no drill file is included in the current repository**, and fabrication output has not been independently qualified here.
-
-## Verification status
-
-| Milestone | Status |
-| --- | --- |
-| KiCad schematic and PCB files | Included |
-| 3D render and layout images | Included |
-| Gerber copper, mask, silk, paste, outline files | Included |
-| Current ERC/DRC report | Not provided |
-| Complete fabrication package including drills | Not yet documented |
-| Powered-board bring-up / functional testing | Not verified in repository |
-| Firmware and motor/servo demonstration | Not provided |
-
-A step-by-step first-power-up and interface test checklist is available in [Bring-up and validation](docs/BRING_UP_AND_VALIDATION.md).
-
-## What I learned and what comes next
-
-The most useful lesson was that a schematic that *looks* complete is not the same as a board that has been validated. Footprint accuracy, power sequencing, regulator thermal limits, motor-supply isolation, return paths, and debug accessibility are all part of the design.
-
-**Next revision priorities:** review and document the known functional issues; validate the 3.3 V rail and SWD access; verify oscillator, USB and motor interfaces; complete manufacturing outputs; and record board-level measurements and firmware tests.
-
-The current repository is intentionally **honest about the gap between a routed PCB and a demonstrated working controller**.
+I want to resolve the electrical issues, verify the 3.3 V supply and SWD connection, flash a basic LED test, and then move on to peripherals and motor control. Once I can show actual measurements and a running board, I'll add them here rather than just calling the design “working.”
 
 ---
 
-Designed by **Adhyayan Tiwari** · Electrical Engineering, University of South Florida  
-**License:** [MIT](LICENSE) · **Tools:** KiCad 10.0
+Built by **Adhyayan Tiwari** · [MIT License](LICENSE)
