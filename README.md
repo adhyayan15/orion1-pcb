@@ -49,8 +49,6 @@ If you're looking through the design, the most useful files are:
 - [Bring-up checklist](docs/BRING_UP_AND_VALIDATION.md)
 - [Fabrication notes](docs/FABRICATION_NOTES.md)
 
-Open `KiCad/orion-1.kicad_pro` in **KiCad 10.0**. Re-run ERC and DRC and check footprints and power nets before treating this revision as fabrication-ready.
-
 ## What's next
 
 I want to resolve the electrical issues, verify the 3.3 V supply and SWD connection, flash a basic LED test, and then move on to peripherals and motor control. Once I can show actual measurements and a running board, I'll add them here rather than just calling the design “working.”
